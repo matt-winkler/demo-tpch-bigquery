@@ -36,3 +36,4 @@ models:
     marts:
       core:
         materialized: view
+        +schema: CORE

@@ -22,6 +22,16 @@ sources:
           - name: c_mktsegment
           - name: c_comment
 
+      - name: record_type_data_example
+        columns: 
+          - name: a
+          - name: aa.b
+          - name: aa.c
+          - name: x
+          - name: xx.y
+          - name: xx.z
+
+
       - name: lineitem
         columns:
           - name: l_orderkey

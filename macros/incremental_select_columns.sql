@@ -37,7 +37,7 @@
            
     {% set dest_columns = config.get('update_columns') %}
     
-    {% set build_sql = default__get_merge_sql(target_relation, tmp_relation, unique_key, dest_columns) %}
+    {% set build_sql = default_get_merge_sql(target_relation, tmp_relation, unique_key, dest_columns) %}
   
   {% endif %}
 
