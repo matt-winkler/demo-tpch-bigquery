@@ -37,3 +37,11 @@ models:
       core:
         materialized: view
         +schema: CORE
+      wrangle:
+        materialized: view
+        +schema: WRANGLE
+      curate:
+        materialized: view
+        +schema: CURATE
+      staging:
+        +schema: STAGING
