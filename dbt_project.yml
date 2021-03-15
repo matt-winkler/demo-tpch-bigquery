@@ -36,7 +36,6 @@ models:
     marts:
       core:
         materialized: view
-        +schema: CORE
       wrangle:
         materialized: view
         +schema: WRANGLE
