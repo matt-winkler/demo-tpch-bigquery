@@ -1,3 +1,7 @@
+{{
+    config(materialized='table')
+}}
+
 with orders as ( select * from {{ ref('order_items') }} ),
 
 aggregated as (
@@ -7,5 +11,6 @@ aggregated as (
     from   orders 
     group by 1
 )
+
 
 select * from aggregated
