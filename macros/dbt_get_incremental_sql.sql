@@ -1,4 +1,4 @@
-{% macro dbt_get_incremental_sql(strategy, tmp_relation, target_relation, unique_key, dest_columns) %}
+{% macro dbt_get_incremental_sql(tmp_relation, target_relation, unique_key, dest_columns) %}
 
 merge into {{ target_relation }} as DBT_INTERNAL_DEST
 
