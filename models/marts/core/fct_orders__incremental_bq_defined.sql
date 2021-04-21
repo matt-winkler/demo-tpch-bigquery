@@ -1,15 +1,17 @@
 {{ 
     config(
-      materialized='incremental_select_columns',
+      materialized='incremental_custom',
       incremental_strategy='merge',
       unique_key='order_key',
       should_full_refresh=False,
-      on_schema_change='fail',
-      source_relation_name='stg_tpch_orders',
-      default_value='-1'
+      on_schema_change='append',
+      set_defaults=True,
+      default_values_map={
+        'INT64': '-1',
+        'STRING': 'emptystring'
+        }
   )
 }}
-
 
 select
     *

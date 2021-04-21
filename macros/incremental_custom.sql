@@ -1,9 +1,10 @@
-{% materialization incremental_select_columns, adapter='bigquery' -%}
+{% materialization incremental_custom, adapter='bigquery' -%}
 
   {%- set unique_key = config.get('unique_key') -%}
   {%- set full_refresh_mode = config.get('should_full_refresh') -%}
-  
-  {%- set default_values_by_type = config.get('default_values_by_type') -%}
+  {%- set set_defaults = config.get('set_defaults') -%}
+  {%- set default_values_map = config.get('default_values_map') -%}
+
 
   -- if the on_schema_change parameter isn't specified, set it to ignore to maintain current behavior
   {%- set on_schema_change = incremental_validate_on_schema_change(config.get('on_schema_change')) -%}
@@ -39,31 +40,26 @@
     -- update the temp relation first
     {% do run_query(create_table_as(True, tmp_relation, sql)) %}
 
-    -- check for new columns in tmp_relation vs. target_relation
-    {% set source_columns = adapter.get_columns_in_relation(tmp_relation) %}
-    {% set target_columns = adapter.get_columns_in_relation(target_relation) %}
+    -- sync the schemas on the temp and target relations according to the config.
+    {% set schema_changes = sync_columns(on_schema_change, tmp_relation, target_relation) %}
+    {% set schema_changed = schema_changes['schema_changed'] %}
+    {% set new_columns = schema_changes['new_columns'] %}
+
+    -- if the schema changed and we want to fail, do that
+    {% if schema_changed and on_schema_change == 'fail' %}
+      {{ 
+          exceptions.raise_compiler_error('The source and target schemas on this incremental model are out of sync!
+               Please re-run the incremental model with full_refresh set to True to update the target schema.
+               Alternatively, you can update the schema manually and re-run the process.') 
+      }}
+    {% endif %}
+
+    -- if set_defaults is True and there are new_columns, set the default values passed in based on column types
+    -- TODO: do we need to check if a default has already been set on this, or is this enough?
+    {% if set_defaults and new_columns != [] %}
+       {{ set_default_values(new_columns, target_relation, default_values_map) }}
+    {% endif %}
      
-    {% for col in source_columns %} 
-      {% if col not in target_columns %}
-       -- add the newly identified column to the target table. It will already exist in the temp relation because of CREATE TABLE AS from the source
-       {% set build_sql = 'ALTER TABLE ' + target_relation.schema+'.'+target_relation.name + ' ADD COLUMN ' + col.name + ' ' + col.dtype %}
-       {% do run_query(build_sql) %}
-        
-       -- this updates the values in the target relation based on passed in config. WHERE 1=1 assumes we want to update everything in the target BEFORE processing the incrementals
-       -- slightly different process for strings
-       {% if col.dtype == 'STRING' %}
-        {% set build_sql = 'UPDATE ' + target_relation.schema+'.'+target_relation.name + ' SET ' + col.name + '="' + default_values_by_type[col.dtype] + '"' + ' WHERE 1=1' %}
-       
-       {% else %}
-         {% set build_sql = 'UPDATE ' + target_relation.schema+'.'+target_relation.name + ' SET ' + col.name + '=' + default_values_by_type[col.dtype] + ' WHERE 1=1' %}
-
-       {% endif %}
-
-       {% do run_query(build_sql) %}
-
-      {% endif %}
-    {% endfor %}
-    
     {% do adapter.expand_target_column_types(
            from_relation=tmp_relation,
            to_relation=target_relation) %}
@@ -71,22 +67,10 @@
     {% set dest_columns = adapter.get_columns_in_relation(target_relation) %}
     {% set dest_columns_arr = [] %}
     {% for col in dest_columns %}
-      
-      -- identify if columns have been removed from the source. If so, drop them from the target
-      {% if col not in source_columns %}
-        {% set build_sql = 'ALTER TABLE ' + target_relation.schema+'.'+target_relation.name + ' DROP COLUMN ' + col.name %}
-        {% do run_query(build_sql) %}
-      
-      -- otherwise update them in the target
-      {% else %}
-
-       {{ dest_columns_arr.append(col.name) }}
-      
-      {% endif %}
-
+      {{ dest_columns_arr.append(col.name) }}
     {% endfor %}
     
-    {% set build_sql = dbt_get_incremental_sql(tmp_relation, target_relation, unique_key, dest_columns) %}
+    {% set build_sql = dbt_get_incremental_sql(tmp_relation, target_relation, unique_key, dest_columns_arr) %}
   
   {% endif %}
 
