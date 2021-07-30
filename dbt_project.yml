@@ -33,15 +33,5 @@ clean-targets:         # directories to be removed by `dbt clean`
 # using the `{{ config(...) }}` macro.
 models:
   tpch:
-    marts:
-      core:
-        materialized: view
-        +schema: CORE
-      wrangle:
-        materialized: view
-        +schema: WRANGLE
-      curate:
-        materialized: view
-        +schema: CURATE
-      staging:
-        +schema: STAGING
+    staging:
+    transient:

@@ -1,0 +1,1 @@
+select * from {{ref('trans_test')}}
