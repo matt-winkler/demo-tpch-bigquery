@@ -12,3 +12,15 @@ sources:
             tests:
               - unique
               - not_null
+  
+  - name: test
+    database: sales-demo-project-314714
+    schema: dbt_mwinkler
+    description: orders data to use for incrementals test (old school ingestion-time partitioned table on Bigquery)
+    tables:
+      - name: ingestion_time_part_source
+        columns:
+          - name: order_key
+            tests:
+              - unique
+              - not_null
