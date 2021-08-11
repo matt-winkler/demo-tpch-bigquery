@@ -1,16 +1,3 @@
-{{
-    config(
-        materialized='table',
-        post_hook=publish_model(
-            this, 
-            published_name=this.identifier ~ '__published', 
-            destination_schemas=['test', 'test_again'],
-            dry_run=False
-          )
-    )
-}}
-
-
 with source as (
 
     select * from {{ source('tpch', 'orders') }}
